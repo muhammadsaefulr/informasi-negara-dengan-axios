@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search and Display Data</title>
+  <!-- Tambahkan link stylesheet Tailwind CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- Tambahkan link stylesheet Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container mx-auto py-10">
+    <div class="flex justify-center">
+      <div class="w-full max-w-lg">
+        <input type="text" id="searchInput" class="w-full mb-5 px-3 py-2 border border-gray-300 rounded-md focus:outline-none" placeholder="Search for a country...">
+      </div>
+    </div>
+    <div class="flex justify-center">
+      <div class="w-full max-w-lg">
+        <div class="dropwdown">
+          <button class="bg-slate-700 flex justify-between p-2 mx-2 text-center w-[180px] text-white text-[15px]"
+            id="btnDrpdwn">
+            <p class="mt-1">Filter In Region</p>
+            <i class="fas fa-chevron-up m-2 duration-100" id="icon-drArrow"></i>
+          </button>
+          <div class="hidden bg-slate-700 p-2 mt-3 mx-2 w-[180px] duration-200" id="dropdown-menu">
+            <ul class="list-none text-[15px] leading-8" id="dropwdown-list">
+              <a class="text-white" href="#">
+                <li data-continent="all">All</li>
+              </a>
+              <a class="text-white" href="#">
+                <li data-continent="Asia">Asia</li>
+              </a>
+              <a class="text-white" href="#">
+                <li data-continent="Europe">Europe</li>
+              </a>
+              <a class="text-white" href="#">
+                <li data-continent="Americas">Americas</li>
+              </a>
+              <a class="text-white" href="#">
+                <li data-continent="Africa">Africa</li>
+              </a>
+              <a class="text-white" href="#">
+                <li data-continent="Oceania">Oceania</li>
+              </a>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="cardContainer" class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"></div>
+  </div>
+
+  <!-- Tambahkan script Axios -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const continentDropdown = document.getElementById('dropdown-menu');
+    const continentSelect = document.getElementById('btnDrpdwn');
+    const cardContainer = document.getElementById('cardContainer');
+    const dataUrl = 'data.json'; // Ganti dengan URL file data.json
+
+    // Ambil data dari file JSON menggunakan Axios
+    const getData = async () => {
+      try {
+        const response = await axios.get(dataUrl);
+        const data = response.data;
+        return data;
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    // Render data dalam bentuk card
+    const renderData = (data) => {
+      cardContainer.innerHTML = '';
+
+      data.forEach((item) => {
+        const card = `
+          <div class="bg-white rounded-md shadow-md">
+            <img src="${item.flags.png}" alt="${item.name}" class="w-full h-40 object-cover rounded-t-md">
+            <div class="p-4">
+              <h2 class="text-xl font-semibold">${item.name}</h2>
+              <p class="text-gray-600">${item.region}</p>
+              <p class="text-gray-600">${item.subregion}</p>
+              <button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md" data-country="${item.alpha3Code}">View Details</button>
+            </div>
+          </div>
+        `;
+        cardContainer.innerHTML += card;
+      });
+
+      // Tambahkan event listener pada setiap tombol "View Details"
+      const detailButtons = document.querySelectorAll('[data-country]');
+      detailButtons.forEach((button) => {
+        button.addEventListener('click', (event) => {
+          const countryCode = event.target.getAttribute('data-country');
+          const country = data.find((item) => item.alpha3Code === countryCode);
+          showCountryDetail(country);
+        });
+      });
+    };
+
+    // Fungsi pencarian berdasarkan nama negara
+    const searchCountry = async (query) => {
+      const data = await getData();
+
+      const filteredData = data.filter((item) => {
+        const name = item.name.toLowerCase();
+        return name.includes(query.toLowerCase());
+      });
+
+      renderData(filteredData);
+    };
+
+    // Fungsi sortir berdasarkan benua
+    const sortCountriesByContinent = (continent) => {
+      if (continent === 'all') {
+        // Tampilkan semua negara
+        getData().then((data) => renderData(data));
+      } else {
+        // Tampilkan negara berdasarkan benua yang dipilih
+        getData().then((data) => {
+          const filteredData = data.filter((item) => item.region === continent);
+          renderData(filteredData);
+        });
+      }
+    };
+
+    // Fungsi menampilkan halaman detail negara
+    const showCountryDetail = (country) => {
+      const detailPage = `
+        <div class="container mx-auto py-10">
+          <div class="flex justify-center">
+            <div class="w-full max-w-md">
+              <div class="bg-white rounded-md shadow-md">
+                <img src="${country.flags.png}" alt="${country.name}" class="w-full h-40 object-cover rounded-t-md">
+                <div class="p-4">
+                  <h2 class="text-xl font-semibold">${country.name}</h2>
+                  <p class="text-gray-600">${country.region}</p>
+                  <p class="text-gray-600">${country.subregion}</p>
+                  <p class="mt-4">Capital: ${country.capital}</p>
+                  <p>Population: ${country.population}</p>
+                  <p>Area: ${country.area}</p>
+                  <p>Timezones: ${country.timezones.join(', ')}</p>
+                  <p>Borders: ${country.borders.join(', ')}</p>
+                  <p>Currencies: ${country.currencies.map((currency) => currency.name).join(', ')}</p>
+                  <p>Languages: ${country.languages.map((language) => language.name).join(', ')}</p>
+                  <button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md" onclick="goBack()">Go Back</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.innerHTML = detailPage;
+    };
+
+    // Fungsi kembali ke halaman utama
+    const goBack = () => {
+      location.reload();
+    };
+
+    // Tambahkan event listener pada input pencarian
+    searchInput.addEventListener('input', (event) => {
+      const query = event.target.value;
+      searchCountry(query);
+    });
+
+    // Tambahkan event listener pada dropdown benua
+    continentSelect.addEventListener('click', () => {
+      continentDropdown.classList.toggle('hidden');
+      document.getElementById('icon-drArrow').classList.toggle('fa-chevron-up');
+      document.getElementById('icon-drArrow').classList.toggle('fa-chevron-down');
+    });
+
+    // Tambahkan event listener pada setiap opsi dropdown benua
+    const continentOptions = document.querySelectorAll('#dropwdown-list li');
+    continentOptions.forEach((option) => {
+      option.addEventListener('click', () => {
+        const continent = option.getAttribute('data-continent');
+        sortCountriesByContinent(continent);
+        continentSelect.textContent = option.textContent;
+        continentDropdown.classList.add('hidden');
+        document.getElementById('icon-drArrow').classList.remove('fa-chevron-up');
+        document.getElementById('icon-drArrow').classList.add('fa-chevron-down');
+      });
+    });
+
+    // Panggil fungsi renderData saat halaman dimuat
+    window.onload = async () => {
+      const data = await getData();
+      renderData(data);
+    };
+  </script>
+</body>
+</html>
